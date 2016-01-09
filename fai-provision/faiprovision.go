@@ -29,6 +29,7 @@ func main() {
 	includeFiles := ReadDhcpRO("/etc/dhcp/dhcp.conf")
 	Info.Println("Gathered all include files, ", includeFiles)
 	fmt.Println("Gathered include files, extracting IPs from them.")
+	dhcpips := GetIpFromInclude(includeFiles)
 
 	fmt.Println(ProvisionDoc())
 	newHost := new(Host)
@@ -55,9 +56,11 @@ func main() {
 				fmt.Println(alive)
 				Warning.Println(alive, "checking nextIP")
 				fmt.Println("Checking next")
-			}else {
+			}else if InSlice(IPtoCheck, dhcpips){
+				fmt.Println(IPtoCheck, "found in dhcp conf")
+				Warning.Println(IPtoCheck, "found in dhcp conf, checking next")
+			} else {
 				Info.Println(IPtoCheck, "is not alive in ping check.")
-				//TODO Add a check to verify ip not in dhcp.conf
 				newHost.SetHostIP(IPtoCheck)
 				newHost.SetHostSubnetInt(localmask)
 				Info.Println("Host IP to be configured as", IPtoCheck)

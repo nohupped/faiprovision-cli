@@ -36,6 +36,7 @@ func ReadDhcpRO(conf string) (includeconf []string)  {
 	includefiles := make([]string, 0, 5)
 
 	file, err := os.Open(conf)
+	defer file.Close()
 	CheckForError(err)
 //	GetLock(file, syscall.LOCK_EX)
 
@@ -55,9 +56,40 @@ func ReadDhcpRO(conf string) (includeconf []string)  {
 	return includefiles
 }
 
-// getIpFromInclude will iterate through the slice and return the IPs.
-func getIpFromInclude(includefile []string)  {
+// InSlice will check if an element exists in a string slice.
+func InSlice(a string, list []string) bool {
+	for _, b := range list {
+		if b == a {
+			return true
+		}
+	}
+	return false
+}
 
+// GetIpFromInclude will iterate through the slice and return a []string of ips.
+func GetIpFromInclude(includefile []string) (dhcpips []string) {
+	ips := make([]string, 0, 5)
+	re := regexp.MustCompile("fixed-address (.*);")
+	for _, f := range includefile{
+		Info.Println("Checking IPs in file ", f)
+		file, err := os.Open(f)
+		CheckForError(err)
+		scanner := bufio.NewScanner(file)
+		for scanner.Scan() {
+			if re.MatchString(scanner.Text()) {
+				if !InSlice(re.FindStringSubmatch(scanner.Text())[1], ips) {
+					Info.Println("Found IP ", re.FindStringSubmatch(scanner.Text())[1])
+					ips = append(ips, re.FindStringSubmatch(scanner.Text())[1])
+				}else {
+					continue
+				}
+			}else {
+				continue
+			}
+		}
+
+	}
+	return ips
 }
 
 
