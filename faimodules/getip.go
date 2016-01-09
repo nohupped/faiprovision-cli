@@ -32,7 +32,7 @@ func GetLocalIP(nic string) string{
 
 }
 
-func GetNetworkSegment(localIPADDR string) (NetworkAddr []int, BroadcastAddr []int)  {
+func GetNetworkSegment(localIPADDR string) (NetworkAddr []int, BroadcastAddr []int, LocalMask []int)  {
 	fmt.Println("Getting  network and broadcast address of ", localIPADDR)
 	Info.Println("Stripping down IP to network")
 	ipsubnetSlice := strings.Split(localIPADDR, "/")
@@ -92,5 +92,5 @@ func GetNetworkSegment(localIPADDR string) (NetworkAddr []int, BroadcastAddr []i
 	}
 	Info.Println("Calculated broadcast IP for the network",Broadcast)
 
-	return Network, Broadcast
+	return Network, Broadcast, localmask
 }

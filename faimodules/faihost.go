@@ -1,5 +1,10 @@
 package faimodules
 
+import (
+	"strconv"
+	"strings"
+)
+
 type Host struct  {
 	hostname string
 	macID string
@@ -38,6 +43,14 @@ func (h *Host) SetHostname(x string)  {
 func (h *Host) SetSameVlan(x bool)  {
 	h.sameVlan = x
 }
-func(h *Host) SetHostIP(x string){
+func (h *Host) SetHostIP(x string){
 	h.ip = x
 }
+func (h *Host) SetHostSubnetInt(x []int)  {
+	s := make([]string, 0, 4)
+	for _, i := range x{
+		s = append(s, strconv.Itoa(i))
+	}
+	h.subnet = strings.Join(s[:], ".")
+}
+

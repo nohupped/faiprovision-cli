@@ -95,3 +95,24 @@ func ValidateAndPopulateIP(h *Host)  {
 		os.Exit(1)
 	}
 }
+
+
+func checkSubnet(subnet *string) (bool) {
+	re := regexp.MustCompile("^(((255.){3}(255|254|252|248|240|224|192|128|0+))|((255.){2}(255|254|252|248|240|224|192|128|0+).0)|((255.)(255|254|252|248|240|224|192|128|0+)(.0+){2})|((255|254|252|248|240|224|192|128|0+)(.0+){3}))$")
+	if re.MatchString(*subnet){
+		return true
+	} else {
+		return false
+	}
+}
+
+func ValidateAndPopulateSubnet(h *Host)  {
+	fmt.Println("Enter the subnet for the IP.")
+	fmt.Scanln(&h.subnet)
+	Info.Println("Subnet Entered, modified value: ", *h)
+	if !checkSubnet(&h.subnet) {
+		Error.Println("Subnet is not valid, dying..\n\t", *h)
+		fmt.Println("Subnet is not valid, dying..")
+		os.Exit(1)
+	}
+}
