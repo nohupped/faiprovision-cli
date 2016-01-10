@@ -19,8 +19,8 @@ func CheckForError(e error) {
 // and the locktype of type int, which is a constant defined in syscall.LOCK*
 
 func GetLock(file *os.File, locktype int )  {
-	fmt.Println("Acquiring exclusive lock on ", file.Name())
-	Info.Println("Acquiring exclusive lock on ", file.Name())
+	fmt.Println("Acquiring lock on ", file.Name())
+	Info.Println("Acquiring lock on ", file.Name())
 	syscall.Flock(int(file.Fd()), locktype)
 	Info.Println("Acquired exclusive lock on ", file.Name())
 	fmt.Println("Acquired filelock on ", file.Name())

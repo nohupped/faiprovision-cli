@@ -7,25 +7,36 @@ import (
 	"strconv"
 	"strings"
 	"os"
+	"syscall"
 )
 
 
 func main() {
+	currentUser, err := user.Current()
+	CheckForError(err)
 
+	//TODO uncomment below to disable root operations, and set restart options / sudo accordingly
+/*	if currentUser.Name == "root" {
+		fmt.Println("Current user is root. Run as a non-root user.")
+		os.Exit(1)
+	}*/
+
+	//Opening log file
+	logFile := StartLog("/var/log/fai.log", currentUser)
+	defer logFile.Close()
 	includepath := "/etc/dhcp/hosts/"
 	dhcpmainconf := "/etc/dhcp/dhcp.conf"
 	nextserverIP := "172.20.17.106"
 	DHCPInitScript := "/etc/init.d/isc-dhcp-server"
+	ProgramLock := "/var/run/.fai.lock"
 
-	currentUser, err := user.Current()
+	lockProgram, err := os.Create(ProgramLock)
+	defer os.Remove(ProgramLock)
 	CheckForError(err)
-	if currentUser.Name == "root" {
-		fmt.Println("Current user is root. Run as a non-root user.")
-		os.Exit(1)
-	}
-	//Opening log file
-	logFile := StartLog("/var/log/fai.log", currentUser)
-	defer logFile.Close()
+	defer lockProgram.Close()
+	GetLock(lockProgram, syscall.LOCK_EX)
+	defer UngetLock(lockProgram)
+
 	Info.Println("FAI Run starting as user: ", *currentUser)
 	includeFiles := ReadDhcpRO(dhcpmainconf)
 	Info.Println("Gathered all include files, ", includeFiles)
@@ -82,7 +93,6 @@ func main() {
 		fmt.Println("todo for manual IP provision")
 		ValidateAndPopulateIP(newHost)
 		ValidateAndPopulateSubnet(newHost)
-		//TODO Complete the rest for populating the struct.
 	}
 
 
