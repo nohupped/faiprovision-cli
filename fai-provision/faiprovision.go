@@ -15,11 +15,10 @@ func main() {
 	currentUser, err := user.Current()
 	CheckForError(err)
 
-	//TODO uncomment below to disable root operations, and set restart options / sudo accordingly
-/*	if currentUser.Name == "root" {
+	if currentUser.Name == "root" {
 		fmt.Println("Current user is root. Run as a non-root user.")
 		os.Exit(1)
-	}*/
+	}
 
 	//Opening log file
 	logFile := StartLog("/var/log/fai.log", currentUser)
@@ -28,7 +27,7 @@ func main() {
 	dhcpmainconf := "/etc/dhcp/dhcp.conf"
 	nextserverIP := "172.20.17.106"
 	DHCPInitScript := "/etc/init.d/isc-dhcp-server"
-	ProgramLock := "/var/run/.fai.lock"
+	ProgramLock := "/tmp/.fai.lock"
 
 	lockProgram, err := os.Create(ProgramLock)
 	defer os.Remove(ProgramLock)

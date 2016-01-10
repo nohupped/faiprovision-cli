@@ -9,7 +9,7 @@ import (
 func RestartDHCP(initscript string) error  {
 	fmt.Println("This program will attempt to restart the service")
 	Info.Println("This program will attempt to restart the service")
-	cmd := exec.Command(initscript, "restart")
+	cmd := exec.Command("sudo", initscript, "restart")
 	var out bytes.Buffer
 	var stderr bytes.Buffer
 	cmd.Stdout = &out
