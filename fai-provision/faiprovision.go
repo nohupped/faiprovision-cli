@@ -3,32 +3,33 @@ package main
 import (
 	"fmt"
 	"os/user"
-//	"os"
 	. "faimodules"
 	"strconv"
 	"strings"
-
+	"os"
 )
 
 
 func main() {
 
+	includepath := "/etc/dhcp/hosts/"
+	dhcpmainconf := "/etc/dhcp/dhcp.conf"
+	nextserverIP := "172.20.17.106"
+	DHCPInitScript := "/etc/init.d/isc-dhcp-server"
+
 	currentUser, err := user.Current()
-	if err != nil {
-		panic(err)
-	}
-	//TODO Remove the comment below later.
-/*	if currentUser.Name == "root" {
+	CheckForError(err)
+	if currentUser.Name == "root" {
 		fmt.Println("Current user is root. Run as a non-root user.")
 		os.Exit(1)
-	}*/
+	}
 	//Opening log file
 	logFile := StartLog("/var/log/fai.log", currentUser)
 	defer logFile.Close()
 	Info.Println("FAI Run starting as user: ", *currentUser)
-	includeFiles := ReadDhcpRO("/etc/dhcp/dhcp.conf")
+	includeFiles := ReadDhcpRO(dhcpmainconf)
 	Info.Println("Gathered all include files, ", includeFiles)
-	fmt.Println("Gathered include files, extracting IPs from them.")
+	fmt.Println("Gathered include files, extracting IPs from them for checking later.")
 	dhcpips := GetIpFromInclude(includeFiles)
 
 	fmt.Println(ProvisionDoc())
@@ -38,6 +39,10 @@ func main() {
 		localip := GetLocalIP("wlan0")
 		network, broadcast, localmask := GetNetworkSegment(localip)
 		fmt.Println(network, broadcast)
+		Info.Println("Setting default gateway")
+		newHost.SetHostDefaultRouteInt(network)
+		Info.Println("Default gateway set, modified value: ", newHost)
+		fmt.Println("Default gw set as, ", newHost.GetRoute())
 		for start := network[len(network)-1]+2; start <= broadcast[len(broadcast)-1]-1; start ++ {
 			tmpnetwork := make([]int, 4, 4)
 			copy(tmpnetwork, network)
@@ -64,6 +69,7 @@ func main() {
 				newHost.SetHostIP(IPtoCheck)
 				newHost.SetHostSubnetInt(localmask)
 				Info.Println("Host IP to be configured as", IPtoCheck)
+				Info.Println("Host Netmask to be configured as", localmask)
 				break
 			}
 
@@ -72,44 +78,41 @@ func main() {
 		ValidateAndPopulateHostname(newHost)
 		ValidateAndPopulateMacID(newHost)
 
-
 	}else {
 		fmt.Println("todo for manual IP provision")
 		ValidateAndPopulateIP(newHost)
 		ValidateAndPopulateSubnet(newHost)
+		//TODO Complete the rest for populating the struct.
 	}
 
 
 
+	FinalSet := fmt.Sprintf("%+v\n",*newHost)
+	Info.Println("The configuration about to push is", FinalSet)
+	fmt.Println("The final configuration is, ", FinalSet, "Enter 'yes' to continue, any other key to abort")
+	var tmp string
+	fmt.Scanln(&tmp)
+	if tmp != "yes"{
+		Info.Println("Aborting upon user request.")
+		os.Exit(1)
+	}
 
-	/*
-
-
-
-
-
-
-
-
-
-	for ; ;  {
-		fmt.Println("type 'yes' for recloning an existing production machine, or 'no' for installing to a fresh server")
-		var tmp string
-		fmt.Scanln(&tmp)
-		Info.Println("type 'no' for recloning an existing production machine, or 'yes' for installing to a fresh server: " , tmp)
-		if tmp == "yes" || tmp == "no"{
-			switch tmp {
-			case "yes":
-				&newHost.reClone=true
-			case "no":
-				&newHost.reClone=false
-			}
-			break
-		}else {
-			Error.Println("Typed value is '", tmp, "', type 'yes' or 'no'. ")
-		}
-	}*/
-
-
+	Info.Println("Opening DHCP configuration to add include file entry")
+	includeconf := includepath + newHost.GetHostname() + ".conf"
+	Backup := TakeBackup(dhcpmainconf)
+	fmt.Println(Backup)
+	WriteIncludeToMainConf(includeconf, dhcpmainconf)
+	WriteToIncludeConf(includeconf, newHost, nextserverIP)
+	err = RestartDHCP(DHCPInitScript)
+	if err != nil {
+		CopyFiles(Backup, dhcpmainconf)
+		os.Remove(includeconf)
+		fmt.Println("Cleanup and restore done\n\nAttempting to restart service again. If the service fail to start again, please escalate.")
+		err = RestartDHCP(DHCPInitScript)
+		CheckForError(err)
+	} else {
+		Info.Println("Settings added to DHCP and restarted.")
+		fmt.Println("Settings successfully added to dhcp server and restarted. Please pxe boot the new server.")
+	}
 
 }

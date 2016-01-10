@@ -17,12 +17,13 @@ func CheckForError(e error) {
 
 // GetLock accepts file of type *os.File returned by os.Open,
 // and the locktype of type int, which is a constant defined in syscall.LOCK*
+
 func GetLock(file *os.File, locktype int )  {
-	fmt.Println("Acquiring exclusive lock on ", file)
-	Info.Println("Acquiring lock on", file)
+	fmt.Println("Acquiring exclusive lock on ", file.Name())
+	Info.Println("Acquiring exclusive lock on ", file.Name())
 	syscall.Flock(int(file.Fd()), locktype)
-	Info.Println("Acquired exclusive lock on ", file)
-	fmt.Println("Acquired filelock")
+	Info.Println("Acquired exclusive lock on ", file.Name())
+	fmt.Println("Acquired filelock on ", file.Name())
 }
 
 // UngetLock accepts file of type *os.File, and removes the lock set by syscall.Flock.
@@ -38,7 +39,6 @@ func ReadDhcpRO(conf string) (includeconf []string)  {
 	file, err := os.Open(conf)
 	defer file.Close()
 	CheckForError(err)
-//	GetLock(file, syscall.LOCK_EX)
 
 
 	scanner := bufio.NewScanner(file)
@@ -51,8 +51,6 @@ func ReadDhcpRO(conf string) (includeconf []string)  {
 		}
 	}
 
-//	UngetLock(file)
-	//syscall.Flock(int(file.Fd()), syscall.LOCK_UN);
 	return includefiles
 }
 
