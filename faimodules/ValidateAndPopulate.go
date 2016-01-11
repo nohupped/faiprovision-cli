@@ -117,3 +117,13 @@ func ValidateAndPopulateSubnet(h *Host)  {
 	}
 }
 
+func ValidateAndPopulateRoute(h *Host)  {
+	fmt.Println("Enter default route for the new host.")
+	fmt.Scanln(&h.gateway)
+	if !checkIP(&h.gateway) {
+		Error.Println("Route is not valid, dying..\n\t", *h)
+		fmt.Println("Route is not valid, dying..")
+		os.Exit(1)
+	}
+}
+

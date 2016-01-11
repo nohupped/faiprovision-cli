@@ -24,10 +24,11 @@ func main() {
 	logFile := StartLog("/var/log/fai.log", currentUser)
 	defer logFile.Close()
 	includepath := "/etc/dhcp/hosts/"
-	dhcpmainconf := "/etc/dhcp/dhcp.conf"
+	dhcpmainconf := "/etc/dhcp/dhcpd.conf"
 	nextserverIP := "172.20.17.106"
 	DHCPInitScript := "/etc/init.d/isc-dhcp-server"
 	ProgramLock := "/tmp/.fai.lock"
+	networkinterface := "eth0"
 
 	lockProgram, err := os.Create(ProgramLock)
 	defer os.Remove(ProgramLock)
@@ -46,7 +47,7 @@ func main() {
 	newHost := new(Host)
 	sameVlan := ValidateAndPopulateVlan(newHost)
 	if sameVlan{
-		localip := GetLocalIP("wlan0")
+		localip := GetLocalIP(networkinterface)
 		network, broadcast, localmask := GetNetworkSegment(localip)
 		fmt.Println(network, broadcast)
 		Info.Println("Setting default gateway")
@@ -89,9 +90,13 @@ func main() {
 		ValidateAndPopulateMacID(newHost)
 
 	}else {
-		fmt.Println("todo for manual IP provision")
+		fmt.Println("Manual configuration")
+		ValidateAndPopulateHostname(newHost)
 		ValidateAndPopulateIP(newHost)
 		ValidateAndPopulateSubnet(newHost)
+		ValidateAndPopulateMacID(newHost)
+		ValidateAndPopulateRoute(newHost)
+
 	}
 
 
@@ -105,11 +110,20 @@ func main() {
 		Info.Println("Aborting upon user request.")
 		os.Exit(1)
 	}
-
-	Info.Println("Opening DHCP configuration to add include file entry")
-	includeconf := includepath + newHost.GetHostname() + ".conf"
+	fmt.Println("Taking Backup")
 	Backup := TakeBackup(dhcpmainconf)
 	fmt.Println(Backup)
+	includeconf := includepath + newHost.GetHostname() + ".conf"
+	fmt.Println(includeFiles)
+	for _, check := range includeFiles{
+		Info.Println("Comparing configfiles", check, includeconf)
+		if check == includeconf{
+			fmt.Println(includeconf, "already exists, please use a different hostname.")
+			Error.Println(includeconf, "already exists, please use a different hostname.")
+			os.Exit(1)
+		}
+	}
+	Info.Println("Opening DHCP configuration to add include file entry")
 	WriteIncludeToMainConf(includeconf, dhcpmainconf)
 	WriteToIncludeConf(includeconf, newHost, nextserverIP)
 	err = RestartDHCP(DHCPInitScript)
